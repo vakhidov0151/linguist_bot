@@ -60,7 +60,7 @@ def handle_message(message):
         translation = translate_text(text)
         bot.edit_message_text(translation, chat_id=message.chat.id, message_id=wait_msg.message_id, parse_mode="Markdown")
     except Exception as e:
-        bot.edit_message_text("❌ Xatolik yuz berdi.", chat_id=message.chat.id, message_id=wait_msg.message_id)
+        bot.edit_message_text(f"❌ Xatolik yuz berdi: {str(e)}", chat_id=message.chat.id, message_id=wait_msg.message_id)
 
 # --- Cloud Serverlar uchun Dummy Web Server ---
 class DummyHandler(BaseHTTPRequestHandler):
