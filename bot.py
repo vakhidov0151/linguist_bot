@@ -1,10 +1,9 @@
 import os
 import json
-import logging
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import telebot
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from dotenv import load_dotenv
 
 from gemini_translator import translate_text, translate_with_langs
@@ -13,25 +12,46 @@ load_dotenv(override=True)
 
 API_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://example.com/')
+CHANNEL_USERNAME = "@amaliysanatjilosi"
 
 if not API_TOKEN or API_TOKEN == "bu_yerga_telegram_tokenni_yozing":
     raise ValueError("TELEGRAM_BOT_TOKEN topilmadi!")
 
 bot = telebot.TeleBot(API_TOKEN)
 
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+# Obunani tekshirish funksiyasi
+def check_subscription(user_id):
+    try:
+        status = bot.get_chat_member(CHANNEL_USERNAME, user_id).status
+        return status in ['member', 'administrator', 'creator']
+    except Exception as e:
+        # Agar bot kanalga admin qilinmagan bo'lsa, xato berishi mumkin.
+        return False
 
-# ... (other code remains the same, assuming imports are at top)
+# A'zo bo'lishni so'rash menyusi
+def send_subscription_warning(chat_id):
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton(text="📢 Kanalga a'zo bo'lish", url=f"https://t.me/{CHANNEL_USERNAME[1:]}"))
+    markup.add(InlineKeyboardButton(text="🔄 Tasdiqlash", callback_data="check_sub_callback"))
+    
+    msg = (
+        "🛑 **Botdan foydalanish uchun avval homiy kanalimizga a'zo bo'lishingiz kerak!**\n\n"
+        "1. Pastdagi tugma orqali kanalga a'zo bo'ling.\n"
+        "2. Keyin **'Tasdiqlash'** tugmasini bosing."
+    )
+    bot.send_message(chat_id, msg, reply_markup=markup, parse_mode="Markdown")
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
+    # Majburiy obunani tekshiramiz
+    if not check_subscription(message.from_user.id):
+        send_subscription_warning(message.chat.id)
+        return
+
     markup = InlineKeyboardMarkup()
     web_app = WebAppInfo(url=WEBAPP_URL)
     
-    # 1-qator: To'liq ekranli Mini App tugmasi
     markup.add(InlineKeyboardButton(text="🚀 Open Mini App", web_app=web_app))
-    
-    # 2-qator: Tillar tugmalari
     markup.row(
         InlineKeyboardButton(text="🇺🇿 O'zbek", callback_data="lang_uz"),
         InlineKeyboardButton(text="🇬🇧 English", callback_data="lang_en"),
@@ -46,8 +66,21 @@ def send_welcome(message):
     )
     bot.reply_to(message, salom_matn, reply_markup=markup, parse_mode="Markdown")
 
+@bot.callback_query_handler(func=lambda call: call.data == "check_sub_callback")
+def handle_sub_check(call):
+    if check_subscription(call.from_user.id):
+        bot.answer_callback_query(call.id, "✅ Rahmat! A'zolik tasdiqlandi. Botdan bemalol foydalanishingiz mumkin.")
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        send_welcome(call.message) # Asosiy menyuni ko'rsatamiz
+    else:
+        bot.answer_callback_query(call.id, "❌ Hali a'zo bo'lmadingiz! Iltimos, kanalga qo'shiling.", show_alert=True)
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith('lang_'))
 def handle_language_selection(call):
+    if not check_subscription(call.from_user.id):
+        send_subscription_warning(call.message.chat.id)
+        return
+
     langs = {
         'lang_uz': "🇺🇿 O'zbek tili tanlandi!",
         'lang_en': "🇬🇧 English selected!",
@@ -58,6 +91,10 @@ def handle_language_selection(call):
 
 @bot.message_handler(content_types=['web_app_data'])
 def web_app_data_handler(message):
+    if not check_subscription(message.from_user.id):
+        send_subscription_warning(message.chat.id)
+        return
+
     try:
         data = json.loads(message.web_app_data.data)
         if data.get('action') == 'translate':
@@ -70,12 +107,16 @@ def web_app_data_handler(message):
             bot.edit_message_text(translation, chat_id=message.chat.id, message_id=wait_msg.message_id, parse_mode="Markdown")
             
     except Exception as e:
-        bot.send_message(message.chat.id, f"❌ Xatolik yuz berdi: {e}")
+        bot.send_message(message.chat.id, f"❌ Xatolik yuz berdi: {str(e)}")
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     text = message.text
     if not text:
+        return
+        
+    if not check_subscription(message.from_user.id):
+        send_subscription_warning(message.chat.id)
         return
         
     wait_msg = bot.send_message(message.chat.id, "⏳ Sun'iy intellekt tarjima qilmoqda...")
@@ -99,8 +140,6 @@ def run_dummy_server():
     server.serve_forever()
 
 if __name__ == '__main__':
-    # Serverni alohida oqimda ishga tushirish (Render va boshqalar uchun kerak)
     threading.Thread(target=run_dummy_server, daemon=True).start()
-    
     print("Bot ishga tushdi!")
     bot.infinity_polling()
