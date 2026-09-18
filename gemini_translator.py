@@ -1,13 +1,5 @@
 import os
 import requests
-
-def translate_text(text: str) -> str:
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY topilmadi!")
-
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={api_key}"
-    headers = {"Content-Type": "application/json"}
 import base64
 
 def translate_text(text: str, target_lang: str = "O'zbek") -> str:
@@ -49,6 +41,7 @@ def translate_text(text: str, target_lang: str = "O'zbek") -> str:
     except Exception as e:
         print(f"Gemini API xatosi: {e}")
         raise e
+
 
 def translate_audio(audio_bytes: bytes, target_lang: str = "O'zbek") -> str:
     """
