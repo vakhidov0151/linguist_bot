@@ -6,7 +6,7 @@ import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from dotenv import load_dotenv
 
-from gemini_translator import translate_text, translate_with_langs
+from gemini_translator import translate_text, translate_with_langs, translate_audio
 
 load_dotenv(override=True)
 
@@ -108,6 +108,24 @@ def web_app_data_handler(message):
             
     except Exception as e:
         bot.send_message(message.chat.id, f"❌ Xatolik yuz berdi: {str(e)}")
+
+@bot.message_handler(content_types=['voice'])
+def handle_voice(message):
+    if not check_subscription(message.from_user.id):
+        send_subscription_warning(message.chat.id)
+        return
+        
+    wait_msg = bot.send_message(message.chat.id, "🎤 Ovozli xabar eshitilmoqda...")
+    try:
+        # Fayl ma'lumotlarini olish
+        file_info = bot.get_file(message.voice.file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        
+        # Ovozni tarjima qilish
+        translation = translate_audio(downloaded_file)
+        bot.edit_message_text(translation, chat_id=message.chat.id, message_id=wait_msg.message_id, parse_mode="Markdown")
+    except Exception as e:
+        bot.edit_message_text(f"❌ Ovozni tarjima qilishda xatolik yuz berdi: {str(e)}", chat_id=message.chat.id, message_id=wait_msg.message_id)
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
