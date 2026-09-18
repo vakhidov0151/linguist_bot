@@ -8,39 +8,12 @@ def translate_text(text: str) -> str:
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={api_key}"
     headers = {"Content-Type": "application/json"}
-    
-    prompt = f"""
-Siz "Aqlli Tilshunos" (Linguist) botsiz. Siz istalgan tillar orasida tarjima qila olasiz.
-Foydalanuvchi sizga quyidagi xabarni yubordi: "{text}"
+import base64
 
-Vazifangiz:
-1. Foydalanuvchi qaysi tillar orasida tarjima so'rayotganini xabarning o'zidan aniqlash. Agar aniq aytilmagan bo'lsa, xorijiy tildan o'zbek tiliga (yoki o'zbek tilidan ingliz tiliga) tarjima qiling. Masalan foydalanuvchi "rus tilidan xitoy tiliga tarjima qil: ..." desa, shu tillarda tarjima qilasiz. "koreyschadan ispanchaga" desa shunday qilasiz.
-2. Quyidagi formatda Markdown yordamida chiroyli qilib javob qaytaring. Sarlavhalarni va emojilarni aynan saqlab qoling:
-
-> **Foydalanuvchi yuborgan so'z/matn:** [So'z yoki Matn]
-> 
-> 🎯 **Asosiy tarjima:** [Asosiy tarjimasi]
-> 🧠 **Kontekst / Ma'nosi:** [Qisqacha tushuntirish va kontekst]
-> 📊 **Darajasi:** [A1/B2/C1 va hokazo, agar qisqa so'z bo'lsa]
-> 🔄 **Boshqa ma'nolari:** 
-> 1. ...
-> 2. ...
-> 
-> 📝 **Misol:** "[Asl tildagi misol]" ([Tarjima qilingan misol])
-
-Javobingiz faqat shu formatda bo'lishi kerak. Qo'shimcha gaplar yoki salomlashishlar yozmang.
-"""
-    
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}]
-    }
-    
-    response = requests.post(url, headers=headers, json=payload)
-    response.raise_for_status()
-    data = response.json()
-    return data['candidates'][0]['content']['parts'][0]['text']
-
-def translate_with_langs(text: str, source: str, target: str) -> str:
+def translate_text(text: str, target_lang: str = "O'zbek") -> str:
+    """
+    Matnni qabul qilib, uni Gemini API orqali ko'rsatilgan tilga tarjima qiladi.
+    """
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY topilmadi!")
@@ -48,32 +21,79 @@ def translate_with_langs(text: str, source: str, target: str) -> str:
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={api_key}"
     headers = {"Content-Type": "application/json"}
     
-    source_str = "avtomatik aniqlangan til" if source == "Auto" else source
-
     prompt = f"""
-Siz "Aqlli Tilshunos" (Linguist) botsiz. 
-Iltimos, quyidagi matnni {source_str} tilidan {target} tiliga tarjima qiling: "{text}"
-
-Quyidagi formatda Markdown yordamida chiroyli qilib javob qaytaring:
-
-> **Foydalanuvchi yuborgan so'z/matn:** {text}
-> 
-> 🎯 **Asosiy tarjima:** [Asosiy tarjimasi]
-> 🧠 **Kontekst / Ma'nosi:** [Qisqacha tushuntirish va kontekst]
-> 📊 **Darajasi:** [A1/B2/C1 va hokazo, agar qisqa so'z bo'lsa]
-> 🔄 **Boshqa ma'nolari:** 
-> 1. ...
-> 2. ...
-> 
-> 📝 **Misol:** "[Asl tildagi misol]" ([Tarjima qilingan misol])
-
-Javobingiz faqat shu formatda bo'lishi kerak.
-"""
+    Iltimos, ushbu so'z yoki gapni {target_lang} tiliga tarjima qilib tahlil qiling.
+    Barcha tushuntirishlar va javoblarni aynan {target_lang} tilida yozing!
+    Javob har doim quyidagi tuzilmada bo'lsin (Sarlavhalarni ham {target_lang} tiliga o'giring):
+    
+    > 🎯 **Asosiy tarjima:** ...
+    > 🧠 **Kontekst / Ma'nosi:** ...
+    > 📊 **Darajasi:** ...
+    > 🔄 **Boshqa ma'nolari:** ...
+    > 📝 **Misol:** ...
+    
+    Matn: "{text}"
+    """
+    
     payload = {
-        "contents": [{"parts": [{"text": prompt}]}]
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }]
     }
     
-    response = requests.post(url, headers=headers, json=payload)
-    response.raise_for_status()
-    data = response.json()
-    return data['candidates'][0]['content']['parts'][0]['text']
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        data = response.json()
+        return data['candidates'][0]['content']['parts'][0]['text']
+    except Exception as e:
+        print(f"Gemini API xatosi: {e}")
+        raise e
+
+def translate_audio(audio_bytes: bytes, target_lang: str = "O'zbek") -> str:
+    """
+    Ovozli xabarni (audio_bytes) Gemini API orqali tarjima qiladi.
+    """
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY topilmadi!")
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={api_key}"
+    headers = {"Content-Type": "application/json"}
+    
+    encoded_audio = base64.b64encode(audio_bytes).decode('utf-8')
+    
+    prompt = f"""
+    Iltimos, ushbu ovozli xabarni diqqat bilan eshiting va unda aytilgan so'z yoki gapni {target_lang} tiliga tarjima qilib tahlil qiling.
+    Barcha tushuntirishlar va javoblarni aynan {target_lang} tilida yozing!
+    Javob har doim quyidagi tuzilmada bo'lsin (Sarlavhalarni ham {target_lang} tiliga o'giring):
+    
+    > 🎯 **Asosiy tarjima:** ...
+    > 🧠 **Kontekst / Ma'nosi:** ...
+    > 📊 **Darajasi:** ...
+    > 🔄 **Boshqa ma'nolari:** ...
+    > 📝 **Misol:** ...
+    """
+    
+    payload = {
+        "contents": [{
+            "parts": [
+                {"text": prompt},
+                {
+                    "inlineData": {
+                        "mimeType": "audio/ogg",
+                        "data": encoded_audio
+                    }
+                }
+            ]
+        }]
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        data = response.json()
+        return data['candidates'][0]['content']['parts'][0]['text']
+    except Exception as e:
+        print(f"Gemini Audio API xatosi: {e}")
+        raise e

@@ -6,7 +6,7 @@ import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from dotenv import load_dotenv
 
-from gemini_translator import translate_text, translate_with_langs, translate_audio
+from gemini_translator import translate_text, translate_audio
 
 load_dotenv(override=True)
 
@@ -19,13 +19,32 @@ if not API_TOKEN or API_TOKEN == "bu_yerga_telegram_tokenni_yozing":
 
 bot = telebot.TeleBot(API_TOKEN)
 
+# Foydalanuvchi tillarini saqlash (oddiy dictionary)
+user_langs = {}
+
+LANGUAGES = {
+    'uz': "🇺🇿 O'zbek",
+    'en': "🇬🇧 English",
+    'ru': "🇷🇺 Русский",
+    'ar': "🇸🇦 العربية",
+    'zh': "🇨🇳 中文",
+    'ko': "🇰🇷 한국어",
+    'it': "🇮🇹 Italiano",
+    'de': "🇩🇪 Deutsch",
+    'fr': "🇫🇷 Français",
+    'es': "🇪🇸 Español",
+    'ja': "🇯🇵 日本語"
+}
+
+def get_user_lang(user_id):
+    return LANGUAGES.get(user_langs.get(user_id, 'uz'), "O'zbek")
+
 # Obunani tekshirish funksiyasi
 def check_subscription(user_id):
     try:
         status = bot.get_chat_member(CHANNEL_USERNAME, user_id).status
         return status in ['member', 'administrator', 'creator']
     except Exception as e:
-        # Agar bot kanalga admin qilinmagan bo'lsa, xato berishi mumkin.
         return False
 
 # A'zo bo'lishni so'rash menyusi
@@ -43,7 +62,6 @@ def send_subscription_warning(chat_id):
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    # Majburiy obunani tekshiramiz
     if not check_subscription(message.from_user.id):
         send_subscription_warning(message.chat.id)
         return
@@ -52,28 +70,38 @@ def send_welcome(message):
     web_app = WebAppInfo(url=WEBAPP_URL)
     
     markup.add(InlineKeyboardButton(text="🚀 Open Mini App", web_app=web_app))
-    markup.row(
-        InlineKeyboardButton(text="🇺🇿 O'zbek", callback_data="lang_uz"),
-        InlineKeyboardButton(text="🇬🇧 English", callback_data="lang_en"),
-        InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang_ru")
-    )
     
+    # Barcha 11 ta tilni 2 tadan qator qilib joylash
+    lang_keys = list(LANGUAGES.keys())
+    for i in range(0, len(lang_keys), 2):
+        row = []
+        for j in range(2):
+            if i + j < len(lang_keys):
+                code = lang_keys[i+j]
+                # Tanlangan til oldida belgi bo'lishi mumkin, lekin oddiy holatda nomi chiqadi
+                btn_text = LANGUAGES[code]
+                if user_langs.get(message.from_user.id, 'uz') == code:
+                    btn_text = "✅ " + btn_text
+                row.append(InlineKeyboardButton(text=btn_text, callback_data=f"lang_{code}"))
+        markup.row(*row)
+    
+    current_lang = get_user_lang(message.from_user.id)
     salom_matn = (
-        "👋 Salom! Men — **Aqlli Tilshunos (Linguist)** botman.\n\n"
-        "Menga istalgan so'z yoki gapni yuboring. Men uni nafaqat tarjima qilaman, "
-        "balki darajasi, boshqa ma'nolari va misollar bilan chuqur tahlil qilib beraman! 🎯\n\n"
-        "Pastdagi tugmalar orqali Mini Appni ochishingiz yoki tilni tanlashingiz mumkin."
+        f"👋 Salom! Men — **Aqlli Tilshunos (Linguist)** botman.\n\n"
+        f"Hozirgi tarjima tili: **{current_lang}**\n\n"
+        "Menga istalgan so'z, gap yoki ovozli xabar yuboring. Men uni ushbu tilga tarjima qilaman va tahlil qilib beraman! 🎯\n\n"
+        "Pastdagi tugmalar orqali tilni almashtirishingiz mumkin."
     )
     bot.reply_to(message, salom_matn, reply_markup=markup, parse_mode="Markdown")
 
 @bot.callback_query_handler(func=lambda call: call.data == "check_sub_callback")
 def handle_sub_check(call):
     if check_subscription(call.from_user.id):
-        bot.answer_callback_query(call.id, "✅ Rahmat! A'zolik tasdiqlandi. Botdan bemalol foydalanishingiz mumkin.")
+        bot.answer_callback_query(call.id, "✅ Rahmat! A'zolik tasdiqlandi.")
         bot.delete_message(call.message.chat.id, call.message.message_id)
-        send_welcome(call.message) # Asosiy menyuni ko'rsatamiz
+        send_welcome(call.message)
     else:
-        bot.answer_callback_query(call.id, "❌ Hali a'zo bo'lmadingiz! Iltimos, kanalga qo'shiling.", show_alert=True)
+        bot.answer_callback_query(call.id, "❌ Hali a'zo bo'lmadingiz!", show_alert=True)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('lang_'))
 def handle_language_selection(call):
@@ -81,13 +109,13 @@ def handle_language_selection(call):
         send_subscription_warning(call.message.chat.id)
         return
 
-    langs = {
-        'lang_uz': "🇺🇿 O'zbek tili tanlandi!",
-        'lang_en': "🇬🇧 English selected!",
-        'lang_ru': "🇷🇺 Выбран русский язык!"
-    }
-    bot.answer_callback_query(call.id, langs.get(call.data, "Tanlandi"))
-    bot.send_message(call.message.chat.id, langs.get(call.data, "Tanlandi"))
+    lang_code = call.data.split('_')[1]
+    if lang_code in LANGUAGES:
+        user_langs[call.from_user.id] = lang_code
+        bot.answer_callback_query(call.id, f"{LANGUAGES[lang_code]} tanlandi!")
+        
+        # Menyuni yangilash (✅ belgisi tushishi uchun)
+        send_welcome(call.message)
 
 @bot.message_handler(content_types=['web_app_data'])
 def web_app_data_handler(message):
@@ -102,8 +130,12 @@ def web_app_data_handler(message):
             target = data.get('targetLang')
             text = data.get('text')
             
+            # Mini appdagi target tilini olamiz
+            target_lang_str = target if target else "O'zbek"
+            
             wait_msg = bot.send_message(message.chat.id, f"⏳ Tarjima qilinmoqda...")
-            translation = translate_with_langs(text, source, target)
+            # Mini Appdan kelgan matnni to'g'ridan to'g'ri translate_text ga yuboramiz
+            translation = translate_text(f"(Bu matn {source} tilidan kiritildi): {text}", target_lang=target_lang_str)
             bot.edit_message_text(translation, chat_id=message.chat.id, message_id=wait_msg.message_id, parse_mode="Markdown")
             
     except Exception as e:
@@ -117,12 +149,11 @@ def handle_voice(message):
         
     wait_msg = bot.send_message(message.chat.id, "🎤 Ovozli xabar eshitilmoqda...")
     try:
-        # Fayl ma'lumotlarini olish
         file_info = bot.get_file(message.voice.file_id)
         downloaded_file = bot.download_file(file_info.file_path)
         
-        # Ovozni tarjima qilish
-        translation = translate_audio(downloaded_file)
+        target_lang = get_user_lang(message.from_user.id)
+        translation = translate_audio(downloaded_file, target_lang=target_lang)
         bot.edit_message_text(translation, chat_id=message.chat.id, message_id=wait_msg.message_id, parse_mode="Markdown")
     except Exception as e:
         bot.edit_message_text(f"❌ Ovozni tarjima qilishda xatolik yuz berdi: {str(e)}", chat_id=message.chat.id, message_id=wait_msg.message_id)
@@ -139,7 +170,8 @@ def handle_message(message):
         
     wait_msg = bot.send_message(message.chat.id, "⏳ Sun'iy intellekt tarjima qilmoqda...")
     try:
-        translation = translate_text(text)
+        target_lang = get_user_lang(message.from_user.id)
+        translation = translate_text(text, target_lang=target_lang)
         bot.edit_message_text(translation, chat_id=message.chat.id, message_id=wait_msg.message_id, parse_mode="Markdown")
     except Exception as e:
         bot.edit_message_text(f"❌ Xatolik yuz berdi: {str(e)}", chat_id=message.chat.id, message_id=wait_msg.message_id)
