@@ -19,19 +19,42 @@ if not API_TOKEN or API_TOKEN == "bu_yerga_telegram_tokenni_yozing":
 
 bot = telebot.TeleBot(API_TOKEN)
 
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+
+# ... (other code remains the same, assuming imports are at top)
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    markup = InlineKeyboardMarkup()
     web_app = WebAppInfo(url=WEBAPP_URL)
-    markup.add(KeyboardButton(text="🔥 Yangi Tarjimon", web_app=web_app))
+    
+    # 1-qator: To'liq ekranli Mini App tugmasi
+    markup.add(InlineKeyboardButton(text="🚀 Open Mini App", web_app=web_app))
+    
+    # 2-qator: Tillar tugmalari
+    markup.row(
+        InlineKeyboardButton(text="🇺🇿 O'zbek", callback_data="lang_uz"),
+        InlineKeyboardButton(text="🇬🇧 English", callback_data="lang_en"),
+        InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang_ru")
+    )
     
     salom_matn = (
-        "👋 Salom! Men **Aqlli Tilshunos (Linguist)** botman.\n\n"
-        "Menga istalgan so'z yoki gapni yuboring. O'zbek tiliga yoki siz xohlagan tillar orasida "
-        "tarjima qilib beraman.\n\n"
-        "Pastdagi **🔥 Yangi Tarjimon** tugmasini bosib, tillarni o'zingiz tanlashingiz ham mumkin."
+        "👋 Salom! Men — **Aqlli Tilshunos (Linguist)** botman.\n\n"
+        "Menga istalgan so'z yoki gapni yuboring. Men uni nafaqat tarjima qilaman, "
+        "balki darajasi, boshqa ma'nolari va misollar bilan chuqur tahlil qilib beraman! 🎯\n\n"
+        "Pastdagi tugmalar orqali Mini Appni ochishingiz yoki tilni tanlashingiz mumkin."
     )
     bot.reply_to(message, salom_matn, reply_markup=markup, parse_mode="Markdown")
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('lang_'))
+def handle_language_selection(call):
+    langs = {
+        'lang_uz': "🇺🇿 O'zbek tili tanlandi!",
+        'lang_en': "🇬🇧 English selected!",
+        'lang_ru': "🇷🇺 Выбран русский язык!"
+    }
+    bot.answer_callback_query(call.id, langs.get(call.data, "Tanlandi"))
+    bot.send_message(call.message.chat.id, langs.get(call.data, "Tanlandi"))
 
 @bot.message_handler(content_types=['web_app_data'])
 def web_app_data_handler(message):
