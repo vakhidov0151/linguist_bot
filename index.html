@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Linguist AI Pro</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0F172A, #0B0F19);
+            color: #F8FAFC;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .top-badge {
+            background-color: #2563EB;
+            color: white;
+            font-weight: 800;
+            font-size: 20px;
+            padding: 12px 24px;
+            border-radius: 0 0 16px 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            margin-bottom: 24px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            width: 100%;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        .header h1 {
+            margin: 0 0 8px 0;
+            font-size: 26px;
+            font-weight: 800;
+        }
+
+        .header h1 span {
+            color: #38BDF8; /* Och ko'k rang 'Pro' yozuvi uchun */
+        }
+
+        .header p {
+            margin: 0;
+            font-size: 13px;
+            color: #94A3B8;
+        }
+
+        .container {
+            width: 100%;
+            padding: 0 24px;
+            box-sizing: border-box;
+            max-width: 500px;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 24px 0;
+            color: #64748B;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #334155;
+        }
+
+        .divider:not(:empty)::before {
+            margin-right: .5em;
+        }
+
+        .divider:not(:empty)::after {
+            margin-left: .5em;
+        }
+
+        .input-box {
+            background-color: #1E293B;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            transition: border-color 0.2s;
+        }
+        
+        .input-box:focus-within {
+            border-color: #38BDF8;
+        }
+
+        .input-box select, .input-box textarea {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #F8FAFC;
+            font-family: inherit;
+            font-size: 15px;
+            outline: none;
+            appearance: none;
+        }
+
+        .input-box select option {
+            background-color: #1E293B;
+            color: #F8FAFC;
+        }
+        
+        .input-box select {
+            cursor: pointer;
+        }
+
+        .input-box textarea {
+            min-height: 100px;
+            resize: none;
+        }
+
+        .input-box textarea::placeholder {
+            color: #64748B;
+        }
+
+        .btn-green {
+            background-color: #2563EB; /* Yashil o'rniga jiddiy Ko'k */
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+            margin-top: 8px;
+        }
+
+        .btn-green:active {
+            transform: scale(0.98);
+        }
+
+        .pricing-section {
+            margin-top: 40px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .pricing-title {
+            color: #F8FAFC;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        
+        .cards {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        
+        .card {
+            background-color: #1E293B;
+            border-radius: 16px;
+            padding: 16px 12px;
+            flex: 1;
+            border: 1px solid #334155;
+        }
+        
+        .card.active {
+            border-color: #38BDF8;
+            background-color: #0F172A;
+        }
+
+        .card h4 {
+            margin: 0;
+            font-size: 13px;
+            color: #94A3B8;
+        }
+        
+        .card .price {
+            font-size: 15px;
+            font-weight: 800;
+            margin: 8px 0;
+            color: #F8FAFC;
+        }
+        
+        .card .btn-orange {
+            background-color: #334155;
+            color: #F8FAFC;
+            border: none;
+            border-radius: 8px;
+            width: 100%;
+            padding: 8px 0;
+            font-weight: 700;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+        
+        .card.active .btn-orange {
+            background-color: #38BDF8;
+            color: #0F172A;
+        }
+        /* --- LIGHT MODE YARATILISHI --- */
+        body.light-mode {
+            background: linear-gradient(135deg, #F8FAFC, #E2E8F0);
+            color: #0F172A;
+        }
+
+        body.light-mode .top-badge {
+            background-color: #2563EB;
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        body.light-mode .header p {
+            color: #64748B;
+        }
+
+        body.light-mode .divider {
+            color: #94A3B8;
+        }
+        
+        body.light-mode .divider::before, body.light-mode .divider::after {
+            border-bottom: 1px solid #CBD5E1;
+        }
+
+        body.light-mode .input-box {
+            background-color: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+        
+        body.light-mode .input-box:focus-within {
+            border-color: #2563EB;
+        }
+
+        body.light-mode .input-box select, body.light-mode .input-box textarea {
+            color: #0F172A;
+        }
+
+        body.light-mode .input-box select option {
+            background-color: #FFFFFF;
+            color: #0F172A;
+        }
+
+        body.light-mode .input-box textarea::placeholder {
+            color: #94A3B8;
+        }
+
+        body.light-mode .card {
+            background-color: #FFFFFF;
+            border: 1px solid #E2E8F0;
+        }
+
+        body.light-mode .card h4 {
+            color: #64748B;
+        }
+
+        body.light-mode .card .price {
+            color: #0F172A;
+        }
+        
+        body.light-mode .card .btn-orange {
+            background-color: #F1F5F9;
+            color: #475569;
+        }
+        
+        body.light-mode .card.active {
+            border-color: #2563EB;
+            background-color: #EFF6FF;
+        }
+
+        body.light-mode .card.active .btn-orange {
+            background-color: #2563EB;
+            color: #FFFFFF;
+        }
+
+        body.light-mode .pricing-title {
+            color: #334155;
+        }
+
+        /* --- THEME TOGGLE TUGMASI --- */
+        .theme-toggle {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #F8FAFC;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 20px;
+            backdrop-filter: blur(4px);
+            transition: all 0.3s ease;
+        }
+
+        body.light-mode .theme-toggle {
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            color: #0F172A;
+        }
+
+        .theme-toggle:active {
+            transform: scale(0.9);
+        }
+    </style>
+</head>
+<body>
+
+    <button class="theme-toggle" id="themeToggleBtn">☀️</button>
+
+    <div class="top-badge">LA</div>
+
+    <div class="header">
+        <h1>Linguist AI <span>Pro</span></h1>
+        <p>Tarjima — barcha ma'nolar va AI tahlili ochiladi</p>
+    </div>
+
+    <div class="container">
+        
+        <!-- Yoki chizig'igacha bo'lgan joy, dizayn uchun -->
+        <div class="input-box" style="justify-content: center; font-weight: 600;">
+            🤖 AI orqali aniq tarjima
+        </div>
+        
+        <div class="divider">tillar</div>
+
+        <!-- Tillar -->
+        <div class="input-box">
+            <select id="sourceLang">
+                <option value="Auto">✨ Avtomatik aniqlash (Qaysi tildan)</option>
+                <option value="Uzbek">🇺🇿 O'zbek tili</option>
+                <option value="English">🇬🇧 Ingliz tili</option>
+                <option value="Russian">🇷🇺 Rus tili</option>
+                <option value="Arabic">🇸🇦 Arab tili</option>
+                <option value="Chinese">🇨🇳 Xitoy tili</option>
+                <option value="Korean">🇰🇷 Koreys tili</option>
+                <option value="Italian">🇮🇹 Italyan tili</option>
+                <option value="German">🇩🇪 Nemis (Olmon) tili</option>
+                <option value="French">🇫🇷 Fransuz tili</option>
+                <option value="Spanish">🇪🇸 Ispan tili</option>
+                <option value="Japanese">🇯🇵 Yapon tili</option>
+            </select>
+        </div>
+
+        <div class="input-box">
+            <select id="targetLang">
+                <option value="Uzbek">🇺🇿 O'zbek tiliga (Qaysi tilga)</option>
+                <option value="English">🇬🇧 Ingliz tiliga</option>
+                <option value="Russian">🇷🇺 Rus tiliga</option>
+                <option value="Arabic">🇸🇦 Arab tiliga</option>
+                <option value="Chinese">🇨🇳 Xitoy tiliga</option>
+                <option value="Korean">🇰🇷 Koreys tiliga</option>
+                <option value="Italian">🇮🇹 Italyan tiliga</option>
+                <option value="German">🇩🇪 Nemis (Olmon) tiliga</option>
+                <option value="French">🇫🇷 Fransuz tiliga</option>
+                <option value="Spanish">🇪🇸 Ispan tiliga</option>
+                <option value="Japanese">🇯🇵 Yapon tiliga</option>
+            </select>
+        </div>
+
+        <div class="divider">matn</div>
+
+        <!-- Matn kiritish -->
+        <div class="input-box">
+            <textarea id="text" placeholder="Tarjima qilish uchun so'z yoki gap yozing..."></textarea>
+        </div>
+
+        <!-- Kirish / Tarjima tugmasi -->
+        <button id="translateBtn" class="btn-green">
+            🪄 Tarjima qilish
+        </button>
+
+        <!-- Premium paketlar -->
+        <div class="pricing-section">
+            <div class="pricing-title">🎙 Ovozli xabarlar uchun Premium paketlar</div>
+            <div class="cards">
+                <div class="card">
+                    <h4>100 ta</h4>
+                    <div class="price">Ovozli</div>
+                    <button class="btn-orange" onclick="tg.close()">10,000 so'm</button>
+                </div>
+                <div class="card active">
+                    <h4>1000 ta</h4>
+                    <div class="price">Ovozli</div>
+                    <button class="btn-orange" onclick="tg.close()">90,000 so'm</button>
+                </div>
+                <div class="card">
+                    <h4>+5 ta</h4>
+                    <div class="price">Tekin!</div>
+                    <button class="btn-orange" onclick="tg.close()">Do'st taklif qilish</button>
+                </div>
+            </div>
+        </div>
+        
+        <br><br>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        // Tungi/Kunduzgi rejim (Dark/Light mode) mantiqi
+        const themeBtn = document.getElementById('themeToggleBtn');
+        const body = document.body;
+        
+        // Agar foydalanuvchi oldin qaysidir rejimni tanlagan bo'lsa, o'shani yuklaymiz
+        if (localStorage.getItem('theme') === 'light') {
+            body.classList.add('light-mode');
+            themeBtn.innerText = '🌙';
+        }
+
+        themeBtn.addEventListener('click', () => {
+            body.classList.toggle('light-mode');
+            
+            if (body.classList.contains('light-mode')) {
+                themeBtn.innerText = '🌙'; // Endi oyga (tungiga) qaytish belgisi
+                localStorage.setItem('theme', 'light'); // Xotirada saqlash
+            } else {
+                themeBtn.innerText = '☀️'; // Endi quyoshga (kunduzgiga) qaytish belgisi
+                localStorage.setItem('theme', 'dark'); // Xotirada saqlash
+            }
+        });
+
+        // Tarjima tugmasi mantiqi
+        document.getElementById('translateBtn').addEventListener('click', () => {
+            const sourceLang = document.getElementById('sourceLang').value;
+            const targetLang = document.getElementById('targetLang').value;
+            const text = document.getElementById('text').value;
+
+            if (!text.trim()) {
+                tg.showAlert("Iltimos, matn kiriting!");
+                return;
+            }
+
+            const btn = document.getElementById('translateBtn');
+            btn.innerHTML = `⏳ Kuting...`;
+            btn.style.opacity = '0.8';
+
+            setTimeout(() => {
+                const data = JSON.stringify({
+                    action: 'translate',
+                    sourceLang: sourceLang,
+                    targetLang: targetLang,
+                    text: text
+                });
+                tg.sendData(data);
+            }, 300);
+        });
+    </script>
+</body>
+</html>
