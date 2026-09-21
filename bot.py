@@ -165,9 +165,26 @@ def send_welcome(message):
     if message.chat.id in waiting_for_receipt:
         del waiting_for_receipt[message.chat.id]
 
-    markup = InlineKeyboardMarkup()
+    from telebot.types import ReplyKeyboardMarkup, KeyboardButton
+    reply_markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    web_app_btn = KeyboardButton(text="🤖 AI Tarjimon", web_app=WebAppInfo(url=WEBAPP_URL))
+    reply_markup.add(web_app_btn)
     
-    # Tillar
+    btn_profile = KeyboardButton(text="👤 Profil")
+    btn_lang = KeyboardButton(text="🌐 Tarjima Tili")
+    reply_markup.add(btn_profile, btn_lang)
+    
+    if str(user_id) == str(ADMIN_ID):
+        reply_markup.add(KeyboardButton(text="⚙️ Admin"))
+    
+    current_lang = get_user_lang(user_id)
+    salom_matn = get_text(user_id, 'welcome', lang=current_lang)
+    
+    bot.send_message(message.chat.id, salom_matn, reply_markup=reply_markup, parse_mode="Markdown")
+    show_language_menu(message.chat.id, user_id)
+
+def show_language_menu(chat_id, user_id):
+    markup = InlineKeyboardMarkup()
     lang_keys = list(LANGUAGES.keys())
     for i in range(0, len(lang_keys), 2):
         row = []
@@ -180,22 +197,18 @@ def send_welcome(message):
                 row.append(InlineKeyboardButton(text=btn_text, callback_data=f"lang_{code}"))
         markup.row(*row)
     
-    markup.row(
-        InlineKeyboardButton(text=get_text(user_id, 'btn_profile'), callback_data="show_profile"),
-        InlineKeyboardButton(text=get_text(user_id, 'btn_interface_lang'), callback_data="change_ui_lang")
-    )
-    
-    current_lang = get_user_lang(user_id)
-    salom_matn = get_text(user_id, 'welcome', lang=current_lang)
-    
-    # WebApp tugmasi uchun ReplyKeyboardMarkup (shunda ma'lumot yuborish xatosiz ishlaydi)
-    from telebot.types import ReplyKeyboardMarkup, KeyboardButton
-    reply_markup = ReplyKeyboardMarkup(resize_keyboard=True)
-    web_app_btn = KeyboardButton(text="🤖 AI Tarjimon", web_app=WebAppInfo(url=WEBAPP_URL))
-    reply_markup.add(web_app_btn)
-    
-    bot.send_message(message.chat.id, "👇 Pastdagi tugma orqali tarjimon dasturini oching:", reply_markup=reply_markup)
-    bot.reply_to(message, salom_matn, reply_markup=markup, parse_mode="Markdown")
+    # Interfeys tili tugmasini ham shu yerga qo'shamiz
+    markup.row(InlineKeyboardButton(text=get_text(user_id, 'btn_interface_lang'), callback_data="change_ui_lang"))
+    bot.send_message(chat_id, "👇 Qaysi tilga tarjima qilishni tanlang:", reply_markup=markup)
+
+def send_profile_info(chat_id, user_id):
+    bal, trans, refs, ui = get_user_stats(user_id)
+    markup = InlineKeyboardMarkup()
+    share_text = f"Zo'r bot ekan, sinab ko'ring! 🎁"
+    share_url = f"https://t.me/share/url?url=https://t.me/{BOT_USERNAME}?start=ref{user_id}&text={share_text}"
+    markup.add(InlineKeyboardButton(text=get_text(user_id, 'btn_share'), url=share_url))
+    text = get_text(user_id, 'profile_text', user_id=user_id, ui_lang=ui.upper(), balance=bal, total_trans=trans, refs=refs, bot_user=BOT_USERNAME)
+    bot.send_message(chat_id, text, reply_markup=markup, parse_mode="Markdown")
 
 @bot.message_handler(commands=['admin'])
 def admin_panel(message):
@@ -399,7 +412,13 @@ def web_app_data_handler(message):
             target_lang_str = target if target else "O'zbek"
             wait_msg = bot.send_message(message.chat.id, get_text(user_id, 'translating'))
             translation = translate_text(f"(Bu matn {source} tilidan kiritildi): {text}", target_lang=target_lang_str)
-            bot.edit_message_text(translation, chat_id=message.chat.id, message_id=wait_msg.message_id, parse_mode="Markdown")
+            try:
+                bot.edit_message_text(translation, chat_id=message.chat.id, message_id=wait_msg.message_id, parse_mode="Markdown")
+            except telebot.apihelper.ApiTelegramException as e:
+                if "parse entities" in str(e).lower():
+                    bot.edit_message_text(translation, chat_id=message.chat.id, message_id=wait_msg.message_id)
+                else:
+                    raise e
             increment_translations(user_id)
     except Exception as e:
         bot.send_message(message.chat.id, get_text(user_id, 'error', err=str(e)))
@@ -422,7 +441,13 @@ def handle_voice(message):
         
         target_lang = get_user_lang(user_id)
         translation = translate_audio(downloaded_file, target_lang=target_lang)
-        bot.edit_message_text(translation, chat_id=message.chat.id, message_id=wait_msg.message_id, parse_mode="Markdown")
+        try:
+            bot.edit_message_text(translation, chat_id=message.chat.id, message_id=wait_msg.message_id, parse_mode="Markdown")
+        except telebot.apihelper.ApiTelegramException as e:
+            if "parse entities" in str(e).lower():
+                bot.edit_message_text(translation, chat_id=message.chat.id, message_id=wait_msg.message_id)
+            else:
+                raise e
         increment_translations(user_id)
     except Exception as e:
         bot.edit_message_text(get_text(user_id, 'error', err=str(e)), chat_id=message.chat.id, message_id=wait_msg.message_id)
@@ -431,6 +456,20 @@ def handle_voice(message):
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     user_id = message.from_user.id
+    text = message.text
+    
+    if not text:
+        return
+        
+    if text == "👤 Profil":
+        send_profile_info(message.chat.id, user_id)
+        return
+    elif text == "🌐 Tarjima Tili":
+        show_language_menu(message.chat.id, user_id)
+        return
+    elif text == "⚙️ Admin" and str(user_id) == str(ADMIN_ID):
+        admin_panel(message)
+        return
     
     # Admin rassilka
     if admin_broadcast_state.get(user_id):
@@ -438,7 +477,7 @@ def handle_message(message):
         sent = 0
         for uid in users:
             try:
-                bot.send_message(uid, message.text, parse_mode="Markdown")
+                bot.send_message(uid, text, parse_mode="Markdown")
                 sent += 1
             except:
                 pass
@@ -448,7 +487,7 @@ def handle_message(message):
         
     # Admin limit qo'shish
     if admin_add_limit_state.get(user_id):
-        parts = message.text.split()
+        parts = text.split()
         if len(parts) == 2:
             try:
                 target_user = int(parts[0])
@@ -461,10 +500,6 @@ def handle_message(message):
         del admin_add_limit_state[user_id]
         return
 
-    text = message.text
-    if not text:
-        return
-        
     if not check_subscription(user_id):
         send_subscription_warning(message.chat.id, user_id)
         return
@@ -473,7 +508,13 @@ def handle_message(message):
     try:
         target_lang = get_user_lang(user_id)
         translation = translate_text(text, target_lang=target_lang)
-        bot.edit_message_text(translation, chat_id=message.chat.id, message_id=wait_msg.message_id, parse_mode="Markdown")
+        try:
+            bot.edit_message_text(translation, chat_id=message.chat.id, message_id=wait_msg.message_id, parse_mode="Markdown")
+        except telebot.apihelper.ApiTelegramException as e:
+            if "parse entities" in str(e).lower():
+                bot.edit_message_text(translation, chat_id=message.chat.id, message_id=wait_msg.message_id)
+            else:
+                raise e
         increment_translations(user_id)
     except Exception as e:
         bot.edit_message_text(get_text(user_id, 'error', err=str(e)), chat_id=message.chat.id, message_id=wait_msg.message_id)
