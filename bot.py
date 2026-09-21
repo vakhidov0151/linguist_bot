@@ -203,12 +203,26 @@ def show_language_menu(chat_id, user_id):
 
 def send_profile_info(chat_id, user_id):
     bal, trans, refs, ui = get_user_stats(user_id)
+    
+    # ui None bo'lishi mumkinligini tekshiramiz
+    ui_str = ui.upper() if ui else 'UZ'
+    
     markup = InlineKeyboardMarkup()
     share_text = f"Zo'r bot ekan, sinab ko'ring! 🎁"
     share_url = f"https://t.me/share/url?url=https://t.me/{BOT_USERNAME}?start=ref{user_id}&text={share_text}"
     markup.add(InlineKeyboardButton(text=get_text(user_id, 'btn_share'), url=share_url))
-    text = get_text(user_id, 'profile_text', user_id=user_id, ui_lang=ui.upper(), balance=bal, total_trans=trans, refs=refs, bot_user=BOT_USERNAME)
-    bot.send_message(chat_id, text, reply_markup=markup, parse_mode="Markdown")
+    
+    bot_user_escaped = BOT_USERNAME.replace('_', '\\_') if BOT_USERNAME else "Bot"
+    
+    text = get_text(user_id, 'profile_text', user_id=user_id, ui_lang=ui_str, balance=bal, total_trans=trans, refs=refs, bot_user=bot_user_escaped)
+    
+    try:
+        bot.send_message(chat_id, text, reply_markup=markup, parse_mode="Markdown")
+    except telebot.apihelper.ApiTelegramException as e:
+        if "parse entities" in str(e).lower():
+            bot.send_message(chat_id, text, reply_markup=markup)
+        else:
+            bot.send_message(chat_id, f"Xatolik: {e}")
 
 @bot.message_handler(commands=['admin'])
 def admin_panel(message):
