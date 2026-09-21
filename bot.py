@@ -166,9 +166,6 @@ def send_welcome(message):
         del waiting_for_receipt[message.chat.id]
 
     markup = InlineKeyboardMarkup()
-    web_app = WebAppInfo(url=WEBAPP_URL)
-    
-    markup.add(InlineKeyboardButton(text=get_text(user_id, 'btn_webapp'), web_app=web_app))
     
     # Tillar
     lang_keys = list(LANGUAGES.keys())
@@ -190,6 +187,14 @@ def send_welcome(message):
     
     current_lang = get_user_lang(user_id)
     salom_matn = get_text(user_id, 'welcome', lang=current_lang)
+    
+    # WebApp tugmasi uchun ReplyKeyboardMarkup (shunda ma'lumot yuborish xatosiz ishlaydi)
+    from telebot.types import ReplyKeyboardMarkup, KeyboardButton
+    reply_markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    web_app_btn = KeyboardButton(text="🤖 AI Tarjimon", web_app=WebAppInfo(url=WEBAPP_URL))
+    reply_markup.add(web_app_btn)
+    
+    bot.send_message(message.chat.id, "👇 Pastdagi tugma orqali tarjimon dasturini oching:", reply_markup=reply_markup)
     bot.reply_to(message, salom_matn, reply_markup=markup, parse_mode="Markdown")
 
 @bot.message_handler(commands=['admin'])
