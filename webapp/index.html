@@ -3,235 +3,446 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Linguist AI</title>
+    <title>Linguist AI Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-        :root {
-            --bg-color: var(--tg-theme-bg-color, #f8f9fa);
-            --text-color: var(--tg-theme-text-color, #202124);
-            --hint-color: var(--tg-theme-hint-color, #80868b);
-            --button-color: var(--tg-theme-button-color, #5c6bc0);
-            --button-text-color: var(--tg-theme-button-text-color, #ffffff);
-            --secondary-bg: var(--tg-theme-secondary-bg-color, #ffffff);
-            
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg-color);
-            background-image: radial-gradient(circle at top right, rgba(92, 107, 192, 0.1), transparent 400px),
-                              radial-gradient(circle at bottom left, rgba(156, 39, 176, 0.05), transparent 400px);
-            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
             margin: 0;
-            padding: 24px 20px;
-            box-sizing: border-box;
+            padding: 0;
+            background: linear-gradient(135deg, #0F172A, #0B0F19);
+            color: #F8FAFC;
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .top-badge {
+            background-color: #2563EB;
+            color: white;
+            font-weight: 800;
+            font-size: 20px;
+            padding: 12px 24px;
+            border-radius: 0 0 16px 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            margin-bottom: 24px;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 24px;
+            width: 100%;
+            padding: 0 20px;
+            box-sizing: border-box;
         }
 
         .header h1 {
-            margin: 0;
+            margin: 0 0 8px 0;
             font-size: 26px;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--button-color), #9c27b0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: inline-block;
+            font-weight: 800;
+        }
+
+        .header h1 span {
+            color: #38BDF8; /* Och ko'k rang 'Pro' yozuvi uchun */
         }
 
         .header p {
-            margin: 8px 0 0;
-            font-size: 14px;
-            color: var(--hint-color);
-        }
-
-        .card {
-            background-color: var(--secondary-bg);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--glass-border);
-            margin-bottom: 20px;
-        }
-
-        .input-group {
-            margin-bottom: 20px;
-        }
-
-        .input-group:last-child {
-            margin-bottom: 0;
-        }
-
-        label {
-            display: block;
+            margin: 0;
             font-size: 13px;
-            font-weight: 600;
-            color: var(--hint-color);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: #94A3B8;
         }
 
-        .select-wrapper {
-            position: relative;
-        }
-
-        .select-wrapper::after {
-            content: '▼';
-            font-size: 10px;
-            color: var(--hint-color);
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            pointer-events: none;
-        }
-
-        select, textarea {
+        .container {
             width: 100%;
-            background-color: var(--bg-color);
-            border: 1px solid rgba(0,0,0,0.05);
-            color: var(--text-color);
+            padding: 0 24px;
+            box-sizing: border-box;
+            max-width: 500px;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 24px 0;
+            color: #64748B;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #334155;
+        }
+
+        .divider:not(:empty)::before {
+            margin-right: .5em;
+        }
+
+        .divider:not(:empty)::after {
+            margin-left: .5em;
+        }
+
+        .input-box {
+            background-color: #1E293B;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            transition: border-color 0.2s;
+        }
+        
+        .input-box:focus-within {
+            border-color: #38BDF8;
+        }
+
+        .input-box select, .input-box textarea {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #F8FAFC;
             font-family: inherit;
             font-size: 15px;
-            padding: 14px 16px;
-            border-radius: 14px;
-            box-sizing: border-box;
             outline: none;
-            transition: all 0.2s ease;
             appearance: none;
         }
 
-        select:focus, textarea:focus {
-            border-color: var(--button-color);
-            box-shadow: 0 0 0 3px rgba(92, 107, 192, 0.15);
+        .input-box select option {
+            background-color: #1E293B;
+            color: #F8FAFC;
+        }
+        
+        .input-box select {
+            cursor: pointer;
         }
 
-        textarea {
-            min-height: 120px;
+        .input-box textarea {
+            min-height: 100px;
             resize: none;
-            line-height: 1.5;
         }
 
-        textarea::placeholder {
-            color: var(--hint-color);
-            opacity: 0.6;
+        .input-box textarea::placeholder {
+            color: #64748B;
         }
 
-        .action-btn {
-            background: linear-gradient(135deg, var(--button-color), #7986cb);
-            color: #ffffff;
+        .btn-green {
+            background-color: #2563EB; /* Yashil o'rniga jiddiy Ko'k */
+            color: white;
             border: none;
             width: 100%;
             padding: 16px;
+            border-radius: 12px;
             font-size: 16px;
-            font-weight: 600;
-            border-radius: 16px;
+            font-weight: 700;
             cursor: pointer;
-            box-shadow: 0 6px 20px rgba(92, 107, 192, 0.3);
-            transition: transform 0.1s, box-shadow 0.2s;
             display: flex;
-            align-items: center;
             justify-content: center;
-            gap: 10px;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+            margin-top: 8px;
         }
 
-        .action-btn:active {
-            transform: scale(0.97);
-            box-shadow: 0 2px 10px rgba(92, 107, 192, 0.2);
+        .btn-green:active {
+            transform: scale(0.98);
         }
 
-        .action-btn svg {
-            width: 20px;
-            height: 20px;
-            fill: currentColor;
+        .pricing-section {
+            margin-top: 40px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .pricing-title {
+            color: #F8FAFC;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        
+        .cards {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        
+        .card {
+            background-color: #1E293B;
+            border-radius: 16px;
+            padding: 16px 12px;
+            flex: 1;
+            border: 1px solid #334155;
+        }
+        
+        .card.active {
+            border-color: #38BDF8;
+            background-color: #0F172A;
         }
 
-        /* Dark mode specific tweaks if the user's Telegram is dark */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            }
-            select, textarea {
-                border: 1px solid rgba(255,255,255,0.05);
-            }
+        .card h4 {
+            margin: 0;
+            font-size: 13px;
+            color: #94A3B8;
+        }
+        
+        .card .price {
+            font-size: 15px;
+            font-weight: 800;
+            margin: 8px 0;
+            color: #F8FAFC;
+        }
+        
+        .card .btn-orange {
+            background-color: #334155;
+            color: #F8FAFC;
+            border: none;
+            border-radius: 8px;
+            width: 100%;
+            padding: 8px 0;
+            font-weight: 700;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+        
+        .card.active .btn-orange {
+            background-color: #38BDF8;
+            color: #0F172A;
+        }
+        /* --- LIGHT MODE YARATILISHI --- */
+        body.light-mode {
+            background: linear-gradient(135deg, #F8FAFC, #E2E8F0);
+            color: #0F172A;
+        }
+
+        body.light-mode .top-badge {
+            background-color: #2563EB;
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        body.light-mode .header p {
+            color: #64748B;
+        }
+
+        body.light-mode .divider {
+            color: #94A3B8;
+        }
+        
+        body.light-mode .divider::before, body.light-mode .divider::after {
+            border-bottom: 1px solid #CBD5E1;
+        }
+
+        body.light-mode .input-box {
+            background-color: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+        
+        body.light-mode .input-box:focus-within {
+            border-color: #2563EB;
+        }
+
+        body.light-mode .input-box select, body.light-mode .input-box textarea {
+            color: #0F172A;
+        }
+
+        body.light-mode .input-box select option {
+            background-color: #FFFFFF;
+            color: #0F172A;
+        }
+
+        body.light-mode .input-box textarea::placeholder {
+            color: #94A3B8;
+        }
+
+        body.light-mode .card {
+            background-color: #FFFFFF;
+            border: 1px solid #E2E8F0;
+        }
+
+        body.light-mode .card h4 {
+            color: #64748B;
+        }
+
+        body.light-mode .card .price {
+            color: #0F172A;
+        }
+        
+        body.light-mode .card .btn-orange {
+            background-color: #F1F5F9;
+            color: #475569;
+        }
+        
+        body.light-mode .card.active {
+            border-color: #2563EB;
+            background-color: #EFF6FF;
+        }
+
+        body.light-mode .card.active .btn-orange {
+            background-color: #2563EB;
+            color: #FFFFFF;
+        }
+
+        body.light-mode .pricing-title {
+            color: #334155;
+        }
+
+        /* --- THEME TOGGLE TUGMASI --- */
+        .theme-toggle {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #F8FAFC;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 20px;
+            backdrop-filter: blur(4px);
+            transition: all 0.3s ease;
+        }
+
+        body.light-mode .theme-toggle {
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            color: #0F172A;
+        }
+
+        .theme-toggle:active {
+            transform: scale(0.9);
         }
     </style>
 </head>
 <body>
-    
+
+    <button class="theme-toggle" id="themeToggleBtn">☀️</button>
+
+    <div class="top-badge">LA</div>
+
     <div class="header">
-        <h1>Linguist AI ✦</h1>
-        <p>Aqlli va chuqur tarjima tizimi</p>
+        <h1>Linguist AI <span>Pro</span></h1>
+        <p>Tarjima — barcha ma'nolar va AI tahlili ochiladi</p>
     </div>
 
-    <div class="card">
-        <div class="input-group">
-            <label>Qaysi tildan:</label>
-            <div class="select-wrapper">
-                <select id="sourceLang">
-                    <option value="Auto">✨ Avtomatik aniqlash</option>
-                    <option value="Uzbek">🇺🇿 O'zbek tili</option>
-                    <option value="English">🇬🇧 Ingliz tili</option>
-                    <option value="Russian">🇷🇺 Rus tili</option>
-                    <option value="Arabic">🇸🇦 Arab tili</option>
-                    <option value="Chinese">🇨🇳 Xitoy tili</option>
-                    <option value="Korean">🇰🇷 Koreys tili</option>
-                    <option value="Spanish">🇪🇸 Ispan tili</option>
-                    <option value="Turkish">🇹🇷 Turk tili</option>
-                </select>
+    <div class="container">
+        
+        <!-- Yoki chizig'igacha bo'lgan joy, dizayn uchun -->
+        <div class="input-box" style="justify-content: center; font-weight: 600;">
+            🤖 AI orqali aniq tarjima
+        </div>
+        
+        <div class="divider">tillar</div>
+
+        <!-- Tillar -->
+        <div class="input-box">
+            <select id="sourceLang">
+                <option value="Auto">✨ Avtomatik aniqlash (Qaysi tildan)</option>
+                <option value="Uzbek">🇺🇿 O'zbek tili</option>
+                <option value="English">🇬🇧 Ingliz tili</option>
+                <option value="Russian">🇷🇺 Rus tili</option>
+                <option value="Arabic">🇸🇦 Arab tili</option>
+                <option value="Chinese">🇨🇳 Xitoy tili</option>
+                <option value="Korean">🇰🇷 Koreys tili</option>
+                <option value="Italian">🇮🇹 Italyan tili</option>
+                <option value="German">🇩🇪 Nemis (Olmon) tili</option>
+                <option value="French">🇫🇷 Fransuz tili</option>
+                <option value="Spanish">🇪🇸 Ispan tili</option>
+                <option value="Japanese">🇯🇵 Yapon tili</option>
+            </select>
+        </div>
+
+        <div class="input-box">
+            <select id="targetLang">
+                <option value="Uzbek">🇺🇿 O'zbek tiliga (Qaysi tilga)</option>
+                <option value="English">🇬🇧 Ingliz tiliga</option>
+                <option value="Russian">🇷🇺 Rus tiliga</option>
+                <option value="Arabic">🇸🇦 Arab tiliga</option>
+                <option value="Chinese">🇨🇳 Xitoy tiliga</option>
+                <option value="Korean">🇰🇷 Koreys tiliga</option>
+                <option value="Italian">🇮🇹 Italyan tiliga</option>
+                <option value="German">🇩🇪 Nemis (Olmon) tiliga</option>
+                <option value="French">🇫🇷 Fransuz tiliga</option>
+                <option value="Spanish">🇪🇸 Ispan tiliga</option>
+                <option value="Japanese">🇯🇵 Yapon tiliga</option>
+            </select>
+        </div>
+
+        <div class="divider">matn</div>
+
+        <!-- Matn kiritish -->
+        <div class="input-box">
+            <textarea id="text" placeholder="Tarjima qilish uchun so'z yoki gap yozing..."></textarea>
+        </div>
+
+        <!-- Kirish / Tarjima tugmasi -->
+        <button id="translateBtn" class="btn-green">
+            🪄 Tarjima qilish
+        </button>
+
+        <!-- Premium paketlar -->
+        <div class="pricing-section">
+            <div class="pricing-title">🎙 Ovozli xabarlar uchun Premium paketlar</div>
+            <div class="cards">
+                <div class="card">
+                    <h4>100 ta</h4>
+                    <div class="price">Ovozli</div>
+                    <button class="btn-orange" onclick="tg.close()">10,000 so'm</button>
+                </div>
+                <div class="card active">
+                    <h4>1000 ta</h4>
+                    <div class="price">Ovozli</div>
+                    <button class="btn-orange" onclick="tg.close()">90,000 so'm</button>
+                </div>
+                <div class="card">
+                    <h4>+5 ta</h4>
+                    <div class="price">Tekin!</div>
+                    <button class="btn-orange" onclick="tg.close()">Do'st taklif qilish</button>
+                </div>
             </div>
         </div>
-
-        <div class="input-group">
-            <label>Qaysi tilga:</label>
-            <div class="select-wrapper">
-                <select id="targetLang">
-                    <option value="Uzbek">🇺🇿 O'zbek tili</option>
-                    <option value="English">🇬🇧 Ingliz tili</option>
-                    <option value="Russian">🇷🇺 Rus tili</option>
-                    <option value="Arabic">🇸🇦 Arab tili</option>
-                    <option value="Chinese">🇨🇳 Xitoy tili</option>
-                    <option value="Korean">🇰🇷 Koreys tili</option>
-                    <option value="Spanish">🇪🇸 Ispan tili</option>
-                    <option value="Turkish">🇹🇷 Turk tili</option>
-                </select>
-            </div>
-        </div>
+        
+        <br><br>
     </div>
-
-    <div class="card">
-        <div class="input-group">
-            <label>Matn yoki so'z</label>
-            <textarea id="text" placeholder="Tarjima qilish uchun shu yerga yozing..."></textarea>
-        </div>
-    </div>
-
-    <button id="translateBtn" class="action-btn">
-        <svg viewBox="0 0 24 24">
-            <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
-        </svg>
-        Tarjima qilish
-    </button>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
         tg.ready();
 
-        // Tugma rangini telegram mavzusiga qarab moslashtirish (MainButton)
-        // Telegramning o'zini tayyor "MainButton"idan ham foydalansak bo'ladi, 
-        // lekin biz HTML ichidagi tugmani dizayn qildik, shuning uchun shuni o'zidan ishlatamiz.
+        // Tungi/Kunduzgi rejim (Dark/Light mode) mantiqi
+        const themeBtn = document.getElementById('themeToggleBtn');
+        const body = document.body;
+        
+        // Agar foydalanuvchi oldin qaysidir rejimni tanlagan bo'lsa, o'shani yuklaymiz
+        if (localStorage.getItem('theme') === 'light') {
+            body.classList.add('light-mode');
+            themeBtn.innerText = '🌙';
+        }
 
+        themeBtn.addEventListener('click', () => {
+            body.classList.toggle('light-mode');
+            
+            if (body.classList.contains('light-mode')) {
+                themeBtn.innerText = '🌙'; // Endi oyga (tungiga) qaytish belgisi
+                localStorage.setItem('theme', 'light'); // Xotirada saqlash
+            } else {
+                themeBtn.innerText = '☀️'; // Endi quyoshga (kunduzgiga) qaytish belgisi
+                localStorage.setItem('theme', 'dark'); // Xotirada saqlash
+            }
+        });
+
+        // Tarjima tugmasi mantiqi
         document.getElementById('translateBtn').addEventListener('click', () => {
             const sourceLang = document.getElementById('sourceLang').value;
             const targetLang = document.getElementById('targetLang').value;
@@ -242,10 +453,8 @@
                 return;
             }
 
-            // Tugma bosilganda animatsiya effekti uchun
             const btn = document.getElementById('translateBtn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8z"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg> Yuborilmoqda...`;
+            btn.innerHTML = `⏳ Kuting...`;
             btn.style.opacity = '0.8';
 
             setTimeout(() => {
