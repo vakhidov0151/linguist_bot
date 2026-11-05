@@ -34,6 +34,14 @@ def init_db():
             )
         ''')
 
+        # Murojaatlar: admin qaysi xabarga Reply qilsa, javob kimga borishini biladi
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS feedback_messages (
+                admin_message_id INTEGER PRIMARY KEY,
+                user_id INTEGER NOT NULL
+            )
+        ''')
+
         # Xavfsiz tarzda yangi ustunlarni qo'shamiz (eski ma'lumotlar o'chib ketmaydi)
         new_columns = [
             ("total_translations", "INTEGER DEFAULT 0"),
@@ -137,6 +145,18 @@ def set_referrer(user_id, referrer_id):
         conn.execute('UPDATE users SET referral_count = COALESCE(referral_count, 0) + 1 WHERE user_id=?',
                      (referrer_id,))
         return True
+
+
+def save_feedback_message(admin_message_id, user_id):
+    with _db() as conn:
+        conn.execute('INSERT OR REPLACE INTO feedback_messages (admin_message_id, user_id) VALUES (?, ?)',
+                     (admin_message_id, user_id))
+
+
+def get_feedback_user(admin_message_id):
+    with _db() as conn:
+        res = conn.execute('SELECT user_id FROM feedback_messages WHERE admin_message_id=?', (admin_message_id,)).fetchone()
+    return res[0] if res else None
 
 
 def get_all_users():

@@ -18,7 +18,7 @@ from formatting import md_to_html, strip_tags, split_chunks
 from database import (
     add_voice_balance, use_voice_balance,
     increment_translations, get_user_stats, set_interface_lang, get_interface_lang,
-    set_target_lang, get_target_lang,
+    set_target_lang, get_target_lang, save_feedback_message, get_feedback_user,
     set_referrer, get_all_users, get_total_user_count, register_user
 )
 
@@ -86,7 +86,18 @@ UI_TEXTS = {
         'slow_down': "⏳ Biroz sekinroq — {sec} soniyada bitta so'rov yuborish mumkin.",
         'daily_limit': "📵 Bugungi bepul tarjimalar limiti tugadi ({limit} ta). Ertaga yana urinib ko'ring.",
         'voice_too_long': "🎙 Ovozli xabar juda uzun. Eng ko'pi bilan {sec} soniya.",
-        'text_too_long': "✂️ Matn juda uzun. Eng ko'pi bilan {limit} belgi yuboring."
+        'text_too_long': "✂️ Matn juda uzun. Eng ko'pi bilan {limit} belgi yuboring.",
+        'fb_menu': "✉️ **Taklif va shikoyat**\n\nMurojaat turini tanlang:",
+        'fb_complaint': "⚠️ Shikoyat",
+        'fb_idea': "💡 Taklif",
+        'fb_question': "❓ Savol",
+        'fb_cancel': "❌ Bekor qilish",
+        'fb_cancelled': "Bekor qilindi.",
+        'fb_write': "✍️ Xabaringizni yozing. Matn, rasm, video yoki ovozli xabar yuborishingiz mumkin:",
+        'fb_sent': "✅ Murojaatingiz adminga yuborildi! Rahmat.",
+        'fb_wait': "⏳ Biroz kuting va qayta yuboring.",
+        'fb_off': "Hozircha murojaat qabul qilinmayapti. Keyinroq urinib ko'ring.",
+        'fb_reply': "📩 Admin javobi:"
     },
     'ru': {
         'sub_warning': "🛑 **Для использования бота подпишитесь на наш канал!**\n\n1. Подпишитесь по кнопке ниже.\n2. Нажмите **'Подтвердить'**.",
@@ -110,7 +121,18 @@ UI_TEXTS = {
         'slow_down': "⏳ Не так быстро — не чаще одного запроса в {sec} сек.",
         'daily_limit': "📵 Дневной лимит бесплатных переводов исчерпан ({limit}). Попробуйте завтра.",
         'voice_too_long': "🎙 Голосовое слишком длинное. Максимум {sec} сек.",
-        'text_too_long': "✂️ Текст слишком длинный. Максимум {limit} символов."
+        'text_too_long': "✂️ Текст слишком длинный. Максимум {limit} символов.",
+        'fb_menu': "✉️ **Предложения и жалобы**\n\nВыберите тип обращения:",
+        'fb_complaint': "⚠️ Жалоба",
+        'fb_idea': "💡 Предложение",
+        'fb_question': "❓ Вопрос",
+        'fb_cancel': "❌ Отмена",
+        'fb_cancelled': "Отменено.",
+        'fb_write': "✍️ Напишите сообщение. Можно отправить текст, фото, видео или голосовое:",
+        'fb_sent': "✅ Ваше обращение отправлено администратору! Спасибо.",
+        'fb_wait': "⏳ Подождите немного и отправьте снова.",
+        'fb_off': "Сейчас обращения не принимаются. Попробуйте позже.",
+        'fb_reply': "📩 Ответ администратора:"
     },
     'en': {
         'sub_warning': "🛑 **Subscribe to our sponsor channel to use the bot!**\n\n1. Join via the button below.\n2. Click **'Verify'**.",
@@ -134,7 +156,18 @@ UI_TEXTS = {
         'slow_down': "⏳ Slow down — one request every {sec} seconds.",
         'daily_limit': "📵 Today's free translation limit is used up ({limit}). Try again tomorrow.",
         'voice_too_long': "🎙 Voice message is too long. Maximum {sec} seconds.",
-        'text_too_long': "✂️ Text is too long. Maximum {limit} characters."
+        'text_too_long': "✂️ Text is too long. Maximum {limit} characters.",
+        'fb_menu': "✉️ **Suggestions and complaints**\n\nChoose the type of your message:",
+        'fb_complaint': "⚠️ Complaint",
+        'fb_idea': "💡 Suggestion",
+        'fb_question': "❓ Question",
+        'fb_cancel': "❌ Cancel",
+        'fb_cancelled': "Cancelled.",
+        'fb_write': "✍️ Write your message. You can send text, a photo, a video or a voice message:",
+        'fb_sent': "✅ Your message was sent to the admin! Thank you.",
+        'fb_wait': "⏳ Please wait a moment and send it again.",
+        'fb_off': "Messages are not accepted right now. Please try later.",
+        'fb_reply': "📩 Admin's reply:"
     }
 }
 
@@ -259,6 +292,11 @@ def send_tariff_menu(chat_id, user_id):
 
 
 waiting_for_receipt = {}
+FEEDBACK_BUTTON = "✉️ Taklif va shikoyat"
+FEEDBACK_KINDS = ('complaint', 'idea', 'question')
+FEEDBACK_COOLDOWN = 30  # soniya: bir foydalanuvchi adminni xabarga ko'mib yubormasligi uchun
+feedback_state = {}      # user_id -> murojaat turi (xabar kutilmoqda)
+feedback_last_sent = {}  # user_id -> oxirgi yuborilgan vaqt
 admin_broadcast_state = {}
 admin_add_limit_state = {}
 _processed_receipts = set()
@@ -272,11 +310,13 @@ def show_main_menu(chat_id, user_id, with_lang_menu=True):
         return
 
     waiting_for_receipt.pop(user_id, None)
+    feedback_state.pop(user_id, None)
 
     reply_markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     if WEBAPP_URL:
         reply_markup.add(KeyboardButton(text="🤖 AI Tarjimon", web_app=WebAppInfo(url=WEBAPP_URL)))
     reply_markup.add(KeyboardButton(text="👤 Profil"), KeyboardButton(text="🌐 Tarjima Tili"))
+    reply_markup.add(KeyboardButton(text=FEEDBACK_BUTTON))
     if is_admin(user_id):
         reply_markup.add(KeyboardButton(text="⚙️ Admin"))
 
@@ -551,7 +591,102 @@ def _broadcast_worker(admin_chat_id, from_chat_id, message_id):
     bot.send_message(admin_chat_id, f"✅ Rassilka tugadi.\n✔️ Yuborildi: {sent} ta\n❌ Yetib bormadi: {failed} ta")
 
 
-MENU_BUTTONS = ("👤 Profil", "🌐 Tarjima Tili", "⚙️ Admin")
+MENU_BUTTONS = ("👤 Profil", "🌐 Tarjima Tili", "⚙️ Admin", FEEDBACK_BUTTON)
+
+
+# --- Taklif va shikoyat ---
+@bot.message_handler(func=lambda m: m.from_user and is_admin(m.from_user.id) and m.reply_to_message
+                     and get_feedback_user(m.reply_to_message.message_id),
+                     content_types=util.content_type_media)
+def handle_admin_feedback_reply(message):
+    user_id = get_feedback_user(message.reply_to_message.message_id)
+    try:
+        bot.send_message(user_id, get_text(user_id, 'fb_reply'))
+        bot.copy_message(user_id, message.chat.id, message.message_id)
+        bot.send_message(message.chat.id, "✅ Javobingiz foydalanuvchiga yuborildi!")
+    except Exception as e:
+        log.warning("Admin javobi yetmadi (%s): %s", user_id, e)
+        bot.send_message(message.chat.id, "❌ Javob yetmadi: foydalanuvchi botni bloklagan bo'lishi mumkin.")
+
+
+@bot.message_handler(commands=['aloqa'])
+@bot.message_handler(func=lambda m: m.text == FEEDBACK_BUTTON)
+def feedback_start(message):
+    user_id = message.from_user.id
+    feedback_state.pop(user_id, None)
+    markup = InlineKeyboardMarkup()
+    for kind in FEEDBACK_KINDS:
+        markup.add(InlineKeyboardButton(get_text(user_id, f'fb_{kind}'), callback_data=f"fb_type_{kind}"))
+    markup.add(InlineKeyboardButton(get_text(user_id, 'fb_cancel'), callback_data="fb_cancel"))
+    send_md(message.chat.id, get_text(user_id, 'fb_menu'), reply_markup=markup)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('fb_type_'))
+def feedback_type_selected(call):
+    kind = call.data[len('fb_type_'):]
+    if kind not in FEEDBACK_KINDS:
+        bot.answer_callback_query(call.id)
+        return
+    user_id = call.from_user.id
+    feedback_state[user_id] = kind
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton(get_text(user_id, 'fb_cancel'), callback_data="fb_cancel"))
+    bot.answer_callback_query(call.id)
+    bot.edit_message_text(get_text(user_id, 'fb_write'), chat_id=call.message.chat.id,
+                          message_id=call.message.message_id, reply_markup=markup)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "fb_cancel")
+def feedback_cancel(call):
+    feedback_state.pop(call.from_user.id, None)
+    bot.answer_callback_query(call.id, get_text(call.from_user.id, 'fb_cancelled'))
+    safe_delete(call.message.chat.id, call.message.message_id)
+
+
+@bot.message_handler(func=lambda m: m.from_user and m.from_user.id in feedback_state,
+                     content_types=util.content_type_media)
+def feedback_message(message):
+    user_id = message.from_user.id
+
+    # Menyu tugmasi yoki buyruq: murojaat bekor bo'ladi, tugma odatdagidek ishlaydi
+    if message.text in MENU_BUTTONS:
+        feedback_state.pop(user_id, None)
+        handle_message(message)
+        return
+    if (message.text or "").startswith('/'):
+        feedback_state.pop(user_id, None)
+        bot.send_message(message.chat.id, get_text(user_id, 'fb_cancelled'))
+        return
+
+    if time.time() - feedback_last_sent.get(user_id, 0) < FEEDBACK_COOLDOWN:
+        bot.send_message(message.chat.id, get_text(user_id, 'fb_wait'))
+        return
+
+    kind = feedback_state.pop(user_id)
+    if not str(ADMIN_ID).lstrip('-').isdigit():
+        log.error("ADMIN_ID o'rnatilmagan: murojaat yetkazilmadi")
+        bot.send_message(message.chat.id, get_text(user_id, 'fb_off'))
+        return
+
+    user = message.from_user
+    info = (f"📩 Yangi murojaat: {UI_TEXTS['uz'][f'fb_{kind}']}\n\n"
+            f"Foydalanuvchi: {user.first_name or ''} (ID: {user_id})\n")
+    if user.username:
+        info += f"Username: @{user.username}\n"
+    info += "\n↩️ Javob berish uchun shu xabarga yoki keyingi xabarga Reply qiling."
+    try:
+        info_msg = bot.send_message(int(ADMIN_ID), info)
+        copied = bot.copy_message(int(ADMIN_ID), message.chat.id, message.message_id)
+        save_feedback_message(info_msg.message_id, user_id)
+        save_feedback_message(copied.message_id, user_id)
+    except Exception:
+        log.exception("Murojaatni adminga yuborib bo'lmadi")
+        bot.send_message(message.chat.id, get_text(user_id, 'error'))
+        return
+
+    feedback_last_sent[user_id] = time.time()
+    bot.send_message(message.chat.id, get_text(user_id, 'fb_sent'))
+
 
 
 @bot.message_handler(func=lambda m: m.from_user and admin_broadcast_state.get(m.from_user.id)
