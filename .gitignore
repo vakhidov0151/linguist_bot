@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.vscode/
+.idea/
+
+# Tunnel executable
+cloudflared.exe
+
+# Database
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+*.db-journal
+
+# Eski kod nusxasi
+_backup_original/
